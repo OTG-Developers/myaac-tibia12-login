@@ -49,6 +49,8 @@ switch ($action) {
 		$world = [
 			'id' => 0,
 			'name' => $config['lua']['serverName'],
+			'externaladdress' => $config['lua']['ip'],
+			'externalport' => $port,
 			'externaladdressprotected' => $config['lua']['ip'],
 			'externalportprotected' => $port,
 			'externaladdressunprotected' => $config['lua']['ip'],
@@ -69,7 +71,16 @@ switch ($action) {
 		$columns = 'name, level, sex, vocation, looktype, lookhead, lookbody, looklegs, lookfeet, lookaddons, deletion, lastlogin';
 		
 		$account = new OTS_Account();
-		$account->find($result->accountname);
+		$isLoginEmail = isset($result->email);
+
+		if ($isLoginEmail) {
+			$account->findByEMail($result->email);
+		} else {
+			$account->find($result->accountname);
+		}
+
+		$accountName = $account->getName();
+
 		$config_salt_enabled = fieldExist('salt', 'accounts');
 		$current_password = encrypt(($config_salt_enabled ? $account->getCustomField('salt') : '') . $result->password);
 
@@ -85,7 +96,7 @@ switch ($action) {
 		$worlds = [$world];
 		$playdata = compact('worlds', 'characters');
 		$session = [
-			'sessionkey' => "$result->accountname\n$result->password",
+			'sessionkey' => "$accountName\n$result->password",
 			'lastlogintime' => (!$account) ? 0 : $account->getLastLogin(),
 			'ispremium' => (!$account) ? true : $account->isPremium(),
 			'premiumuntil' => (!$account) ? 0 : (time() + ($account->getPremDays() * 86400)),
